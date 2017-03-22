@@ -1,0 +1,118 @@
+#!/bin/bash
+
+PROXY_PORT=1081
+
+PROXY_VARS_NAME="http_proxy=,https_proxy=,ftp_proxy=,socks_proxy="
+
+add_proxy_envir()
+{
+	echo "http_proxy=\"http://127.0.0.1:$PROXY_PORT/\"" | sudo tee -a /etc/environment > /dev/null
+	echo "https_proxy=\"https://127.0.0.1:$PROXY_PORT/\"" | sudo tee -a /etc/environment > /dev/null
+	echo "ftp_proxy=\"ftp://127.0.0.1:$PROXY_PORT/\"" | sudo tee -a /etc/environment > /dev/null
+	echo "socks_proxy=\"socks://127.0.0.1:$PROXY_PORT/\"" | sudo tee -a /etc/environment > /dev/null
+}
+
+remove_proxy_envir()
+{
+	sudo rm /etc/environment_new.sysproxy 1>/dev/null 2>&1
+	sudo cat /etc/environment | while read LINE
+	do
+		is_proxy_setting=false
+		while read VAR_NAME && ! $is_proxy_setting
+		do
+			if [[ $LINE == ${VAR_NAME}* ]]; then
+				is_proxy_setting=true
+			fi
+		done < <(echo $PROXY_VARS_NAME | tr "," "\n")
+		if ! $is_proxy_setting; then
+			echo $LINE | sudo tee -a /etc/environment_new.sysproxy > /dev/null
+		fi
+	done
+	sudo mv -f /etc/environment_new.sysproxy /etc/environment
+}
+
+staus_proxy_envir()
+{
+	sudo cat /etc/environment | while read LINE
+	do
+		while read VAR_NAME
+		do
+			if [[ $LINE == ${VAR_NAME}* ]]; then
+				echo $LINE
+				break
+			fi
+		done < <(echo $PROXY_VARS_NAME | tr "," "\n")
+	done
+}
+
+enable_sysproxy()
+{
+	gsettings set org.gnome.system.proxy.http host '127.0.0.1'
+	gsettings set org.gnome.system.proxy.http port $PROXY_PORT
+	gsettings set org.gnome.system.proxy.https host '127.0.0.1'
+	gsettings set org.gnome.system.proxy.https port $PROXY_PORT
+	gsettings set org.gnome.system.proxy.ftp host '127.0.0.1'
+	gsettings set org.gnome.system.proxy.ftp port $PROXY_PORT
+	gsettings set org.gnome.system.proxy.socks host '127.0.0.1'
+	gsettings set org.gnome.system.proxy.socks port $PROXY_PORT
+	gsettings set org.gnome.system.proxy mode 'manual'
+}
+
+disable_sysproxy()
+{
+	gsettings set org.gnome.system.proxy mode 'none'
+}
+
+PROXY_TYPE="http,https,ftp,socks"
+status_sysproxy()
+{
+	proxy_mode=`gsettings get org.gnome.system.proxy mode | tr -d "'"`
+	echo "Proxy mode: $proxy_mode"
+	if [[ $proxy_mode == "manual" ]]; then
+		IFS=",";
+		for proxy_protocol in $PROXY_TYPE
+		do
+			proxy_host=`gsettings get org.gnome.system.proxy.$proxy_protocol host | tr -d "'"`
+			proxy_port=`gsettings get org.gnome.system.proxy.$proxy_protocol port`
+			echo "[$proxy_protocol]: $proxy_host:$proxy_port"
+		done
+	fi
+}
+
+using_envir=false
+if [[ $2 == "envir" || $2 == "environment" || $2 == "-e" ]]; then
+	using_envir=true
+fi
+
+case $1 in
+	enable)
+	if $using_envir; then
+		remove_proxy_envir
+		add_proxy_envir
+		echo "Proxy status:"
+		staus_proxy_envir
+	else
+		enable_sysproxy
+		status_sysproxy
+	fi
+	;;
+	disable)
+	if $using_envir; then
+		remove_proxy_envir
+		echo "Proxy removed."
+	else
+		disable_sysproxy
+	fi
+	;;
+	status|state)
+	if $using_envir; then
+		staus_proxy_envir
+	else
+		status_sysproxy
+	fi
+	;;
+	*|"")
+	echo "Usage: $0 [enable|disable|status|state] *[-e|envir|environment]"
+	exit 3
+	;;
+esac
