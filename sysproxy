@@ -45,16 +45,17 @@ staus_proxy_envir()
 	done
 }
 
+
+PROXY_TYPE="http,https,ftp,socks"
+
 enable_sysproxy()
 {
-	gsettings set org.gnome.system.proxy.http host '127.0.0.1'
-	gsettings set org.gnome.system.proxy.http port $PROXY_PORT
-	gsettings set org.gnome.system.proxy.https host '127.0.0.1'
-	gsettings set org.gnome.system.proxy.https port $PROXY_PORT
-	gsettings set org.gnome.system.proxy.ftp host '127.0.0.1'
-	gsettings set org.gnome.system.proxy.ftp port $PROXY_PORT
-	gsettings set org.gnome.system.proxy.socks host '127.0.0.1'
-	gsettings set org.gnome.system.proxy.socks port $PROXY_PORT
+	IFS=",";
+	for proxy_protocol in $PROXY_TYPE
+	do
+		gsettings set org.gnome.system.proxy.$proxy_protocol host '127.0.0.1'
+		gsettings set org.gnome.system.proxy.$proxy_protocol port $PROXY_PORT
+	done
 	gsettings set org.gnome.system.proxy mode 'manual'
 }
 
@@ -63,7 +64,6 @@ disable_sysproxy()
 	gsettings set org.gnome.system.proxy mode 'none'
 }
 
-PROXY_TYPE="http,https,ftp,socks"
 status_sysproxy()
 {
 	proxy_mode=`gsettings get org.gnome.system.proxy mode | tr -d "'"`
@@ -78,6 +78,7 @@ status_sysproxy()
 		done
 	fi
 }
+
 
 using_envir=false
 if [[ $2 == "envir" || $2 == "environment" || $2 == "-e" ]]; then

@@ -1,19 +1,19 @@
 # Introduction / 介绍
-This is a script to enable/disable system-wide proxy in ubuntu.
+This is a script to enable/disable system-wide proxy in ubuntu.  
 一个开启/关闭系统代理的脚本。试验环境基于Ubuntu。
 
 # Install / 安装
 Put this script somewhere handy so that you can execute it easily.  
-把这个脚本放在你随时都能够得着的地方～
+把这个脚本放在你随时都能够得着的地方～  
 Don't forget to give it +x permission.  
-记得给它+x的运行权限。
+记得给它+x的运行权限。  
 ```bash
 sudo ug+x sysproxy
 ```
 
 # Configuration / 设定
 Change the following variable to the proxy port you want.  
-把下面的变量值改为你所需要设定的端口。
+把下面的变量值改为你所需要设定的端口。  
 ```bash
 PROXY_PORT=1081 # Proxy http,https,ftp,socks to the same port.
 ```
